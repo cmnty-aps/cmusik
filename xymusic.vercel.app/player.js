@@ -3,7 +3,30 @@
 // ============================================================
 const API={search:'/api/search',artist:'/api/artist',suggest:'/api/suggest',lyrics:'/api/lyrics'};
 window.FI='data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 24 24" fill="none" stroke="%236b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>');
-const S={ht:[],sr:[],ar:[],artists:[],rec:[],trend:[],sq:'',filter:'all',ct:null,pl:[],pi:-1,ps:'',ip:false,il:false,rm:'off',autoNext:true,yp:null,yr:false,iv:null,pt:0,pd:0,at:'home',ld:{type:'none',lines:[]},cli:-1,lo:false};
+const S={ht:[],sr:[],ar:[],artists:[],rec:[],trend:[],sq:'',filter:'all',ct:null,pl:[],pi:-1,ps:'',ip:false,il:false,rm:'off',autoNext:true,yp:null,yr:false,iv:null,pt:0,pd:0,at:'home',ld:{type:'none',lines:[]},cli:-1,lo:false,bgMusicEnabled:true,bgAudioElement:null};
+
+// Background Music Manager
+const BGMusicManager={
+    init(){
+        S.bgAudioElement=gid('bg-audio');
+        if(S.bgAudioElement){
+            S.bgAudioElement.addEventListener('play',function(){console.log('[v0] BG audio playing');});
+            S.bgAudioElement.addEventListener('pause',function(){console.log('[v0] BG audio paused');});
+        }
+    },
+    playBG(){
+        if(!S.bgMusicEnabled||!S.bgAudioElement)return;
+        S.bgAudioElement.play().catch(function(e){console.log('[v0] BG play failed:',e.message);});
+    },
+    pauseBG(){
+        if(!S.bgAudioElement)return;
+        S.bgAudioElement.pause();
+    },
+    setBGEnabled(enabled){
+        S.bgMusicEnabled=enabled;
+        if(!enabled)BGMusicManager.pauseBG();
+    }
+};
 function fm(s){if(isNaN(s))return"0:00";const m=Math.floor(s/60),se=Math.floor(s%60);return m+':'+(se<10?'0':'')+se;}
 function es(t){if(!t)return'';const d=document.createElement('div');d.textContent=t;return d.innerHTML;}
 function cn(t){if(!t)return'Unknown';return t.replace(/[^\x20-\x7E\xA0-\xFF\u0100-\uFFFF]/g,'').replace(/\s*-\s*Topic$/i,'').trim()||'Unknown';}
@@ -11,8 +34,11 @@ function gid(id){return document.getElementById(id);}
 
 document.addEventListener('visibilitychange', function() {
     if (document.hidden && S.ip) {
-        var bg = gid('bg-audio');
-        if (bg) bg.play().catch(function(){});
+        BGMusicManager.playBG();
+        console.log('[v0] App hidden - BG music started');
+    }else if(!document.hidden && S.ip){
+        BGMusicManager.pauseBG();
+        console.log('[v0] App visible - BG music paused');
     }
 });
 
@@ -23,7 +49,7 @@ function updateOG(title,image){
 }
 
 const yt=document.createElement('script');yt.src="https://www.youtube.com/iframe_api";document.head.appendChild(yt);
-function onYouTubeIframeAPIReady(){S.yp=new YT.Player('yt-player',{height:'100%',width:'100%',playerVars:{autoplay:1,controls:0,enablejsapi:1,playsinline:1},events:{onReady:function(){S.yr=true;},onStateChange:ys}});}
+function onYouTubeIframeAPIReady(){S.yp=new YT.Player('yt-player',{height:'100%',width:'100%',playerVars:{autoplay:1,controls:0,enablejsapi:1,playsinline:1},events:{onReady:function(){S.yr=true;BGMusicManager.init();},onStateChange:ys}});}
 function ys(e){
     if(e.data===1){
         S.ip=true;S.il=false;UB();SP();
@@ -69,7 +95,6 @@ function ST(){if(S.iv){clearInterval(S.iv);S.iv=null;} if(S.miv){clearInterval(S
 function UB(){
     var mi=gid('mini-play-btn'),fu=gid('full-play-btn');
     if(!mi||!fu)return;
-    var bg = gid('bg-audio');
     if(S.il){
         mi.innerHTML='<div class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>';
         fu.innerHTML='<div class="w-6 h-6 border-3 border-black border-t-transparent rounded-full animate-spin"></div>';
@@ -77,12 +102,12 @@ function UB(){
     else if(S.ip){
         mi.innerHTML='<i data-lucide="pause" class="w-6 h-6 fill-current"></i>';
         fu.innerHTML='<i data-lucide="pause" class="w-7 h-7 fill-current"></i>';
-        if(bg) bg.play().catch(function(){});
+        if(document.hidden)BGMusicManager.playBG();
     }
     else{
         mi.innerHTML='<i data-lucide="play" class="w-6 h-6 fill-current"></i>';
         fu.innerHTML='<i data-lucide="play" class="w-7 h-7 fill-current ml-0.5"></i>';
-        if(bg) bg.pause();
+        BGMusicManager.pauseBG();
     }
     lucide.createIcons();
     if('mediaSession' in navigator){navigator.mediaSession.playbackState=S.ip?'playing':'paused';}
@@ -149,6 +174,54 @@ function SF(){if(S.pl.length)PK(S.ps,Math.floor(Math.random()*S.pl.length));}
 function toggleAutoNext(){S.autoNext=!S.autoNext;showToast(S.autoNext?'Putar Berikutnya: ON':'Putar Berikutnya: OFF');}
 
 function shareTrack(){if(!S.ct||!S.ct.videoId)return;var url=location.origin+'/?play='+S.ct.videoId+'&share=1';updateOG(S.ct.title,S.ct.cover);if(navigator.share){navigator.share({title:S.ct.title,text:S.ct.title+' - '+S.ct.artist,url:url}).catch(function(){});}}
+
+function showBGSettings(){
+    var popup=document.createElement('div');
+    popup.className='fixed inset-0 z-[300] flex items-end justify-center bg-black/60';
+    popup.onclick=function(e){if(e.target===popup)popup.remove();};
+    var bgStatus=S.bgMusicEnabled?'Aktif':'Nonaktif';
+    popup.innerHTML=`<div class="glass-strong w-full max-w-md rounded-t-3xl p-6 border-t border-white/10" style="animation:slideUp 0.3s ease-out forwards;">
+        <div class="w-10 h-1 bg-white/20 rounded-full mx-auto mb-4"></div>
+        <h3 class="font-bold text-white mb-4 flex items-center"><i data-lucide="radio" class="w-5 h-5 mr-2"></i>Musik Latar Belakang</h3>
+        <div class="space-y-3 mb-4">
+            <div class="flex items-center justify-between p-3 glass glass-hover rounded-lg">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="volume-2" class="w-5 h-5 text-[#cfd3d8]"></i>
+                    <div>
+                        <p class="text-white font-medium">Putar di Latar</p>
+                        <p class="text-[#6b7280] text-xs">Musik terus dimainkan saat app tersembunyi</p>
+                    </div>
+                </div>
+                <input type="checkbox" id="bg-toggle" ${S.bgMusicEnabled?'checked':''} onchange="BGMusicManager.setBGEnabled(this.checked);this.parentElement.parentElement.innerHTML=BGSettingsUpdater()" class="w-5 h-5 cursor-pointer" />
+            </div>
+            <div class="p-3 glass rounded-lg">
+                <p class="text-white font-medium text-sm mb-2 flex items-center"><i data-lucide="info" class="w-4 h-4 mr-2"></i>Fitur Ini</p>
+                <ul class="text-[#6b7280] text-xs space-y-1 ml-6 list-disc">
+                    <li>Memutar audio saat aplikasi di background</li>
+                    <li>Menghemat baterai dengan audio berkualitas optimal</li>
+                    <li>Kompatibel dengan lock screen controls</li>
+                    <li>Tidak menggunakan data tambahan</li>
+                </ul>
+            </div>
+        </div>
+        <button onclick="this.parentElement.parentElement.remove()" class="w-full py-3 glass glass-hover text-white rounded-full flex items-center justify-center"><i data-lucide="x" class="w-4 h-4 mr-2"></i>Tutup</button>
+    </div>`;
+    document.body.appendChild(popup);
+    lucide.createIcons();
+}
+function BGSettingsUpdater(){
+    var isChecked=gid('bg-toggle')?gid('bg-toggle').checked:S.bgMusicEnabled;
+    return`<div class="flex items-center justify-between p-3 glass glass-hover rounded-lg">
+        <div class="flex items-center gap-2">
+            <i data-lucide="volume-2" class="w-5 h-5 text-[#cfd3d8]"></i>
+            <div>
+                <p class="text-white font-medium">Putar di Latar</p>
+                <p class="text-[#6b7280] text-xs">Musik terus dimainkan saat app tersembunyi</p>
+            </div>
+        </div>
+        <input type="checkbox" id="bg-toggle" ${isChecked?'checked':''} onchange="BGMusicManager.setBGEnabled(this.checked);this.parentElement.parentElement.innerHTML=BGSettingsUpdater()" class="w-5 h-5 cursor-pointer" />
+    </div>`;
+}
 
 async function FL(title, artist){
     var l=gid('lyrics-loading'),c=gid('lyrics-content'),e=gid('lyrics-empty');
