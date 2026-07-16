@@ -28,14 +28,18 @@ const BgAudioConfig={
 
 const BackgroundAudioService={
     config:BgAudioConfig.load(),
+    initialized:false,
     
     init(){
+        if(this.initialized)return;
+        this.initialized=true;
         console.log('[v0] BackgroundAudioService initialized');
         this.setupEventListeners();
         this.setupWakeLock();
     },
     
     setupEventListeners(){
+        if(!document)return;
         // Monitor visibility changes
         document.addEventListener('visibilitychange',()=>{
             if(document.hidden){
@@ -55,8 +59,27 @@ const BackgroundAudioService={
     },
     
     setupWakeLock(){
-        if('wakeLock' in navigator){
-            console.log('[v0] Wake Lock API available');
+        if(!navigator || !navigator.wakeLock){
+            console.log('[v0] Wake Lock API not supported');
+            return;
+        }
+        console.log('[v0] Wake Lock API available');
+    },
+    
+    requestWakeLock(){
+        if(!navigator || !navigator.wakeLock)return;
+        try{
+            navigator.wakeLock.request('screen').then(sentinel=>{
+                this.wakeLockSentinel=sentinel;
+                console.log('[v0] Wake lock acquired');
+                sentinel.addEventListener('release',()=>{
+                    console.log('[v0] Wake lock released');
+                });
+            }).catch(err=>{
+                console.log('[v0] Wake lock error:',err);
+            });
+        }catch(e){
+            console.log('[v0] Wake lock request failed:',e.message);
         }
     },
     
@@ -80,10 +103,19 @@ const BackgroundAudioService={
     
     onAppBackground(){
         if(!this.config.bgEnabled)return;
+        console.log('[v0] Background playback activated');
         
-        if(S&&S.ip){
-            console.log('[v0] Audio playing - activating background playback');
-            this.activateBackgroundPlayback();
+        // Request wake lock if screen-off playback is enabled
+        if(this.config.screenOffPlayback && navigator.wakeLock && typeof S !== 'undefined' && S.ip){
+            this.requestWakeLock();
+        }
+    },
+    
+    onAppForeground(){
+        console.log('[v0] Foreground mode - releasing wake lock');
+        if(this.wakeLockSentinel){
+            this.wakeLockSentinel.release().catch(e=>console.log('[v0] Wake lock release error:',e));
+            this.wakeLockSentinel=null;
         }
     },
     
