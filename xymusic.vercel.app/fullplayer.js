@@ -7,8 +7,9 @@ const FullPlayer={
                 <button onclick="FullPlayer.close()" class="text-white/70 hover:text-white hover:bg-white/10 p-3 rounded-full active:scale-90 transition-all duration-200"><i data-lucide="chevron-down" class="w-7 h-7"></i></button>
                 <div class="text-center"><p class="text-[10px] uppercase tracking-[0.2em] text-[#b3b3b3]">Now Playing</p><p id="full-header-artist" class="text-sm font-bold truncate max-w-[200px]"></p></div>
                 <div class="flex gap-1">
-                    <button onclick="shareTrack()" class="text-white/70 hover:text-white hover:bg-white/10 p-3 rounded-full active:scale-90 transition-all"><i data-lucide="share-2" class="w-5 h-5"></i></button>
-                    <button onclick="toggleLyrics()" class="text-white/70 hover:text-white hover:bg-white/10 p-3 rounded-full active:scale-90 transition-all"><i data-lucide="align-left" class="w-6 h-6"></i></button>
+                    <button onclick="shareTrack()" class="text-white/70 hover:text-white hover:bg-white/10 p-3 rounded-full active:scale-90 transition-all" title="Bagikan"><i data-lucide="share-2" class="w-5 h-5"></i></button>
+                    <button onclick="toggleLyrics()" class="text-white/70 hover:text-white hover:bg-white/10 p-3 rounded-full active:scale-90 transition-all" title="Lirik"><i data-lucide="align-left" class="w-6 h-6"></i></button>
+                    <button onclick="showBGSettings()" class="text-white/70 hover:text-white hover:bg-white/10 p-3 rounded-full active:scale-90 transition-all" title="Pengaturan BG"><i data-lucide="settings" class="w-5 h-5"></i></button>
                 </div>
             </div>
             <div class="relative z-10 flex-1 flex items-center justify-center px-8" style="min-height:0;overflow:hidden;">
